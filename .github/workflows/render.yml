@@ -16,10 +16,11 @@ jobs:
         run: unzip -q $(ls *bundle.zip | head -1)
       - name: deps
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg libegl1 libgl1 libglib2.0-0 libfontconfig1 libfreetype6
           pip install -q skia-python numpy pillow scipy
       - name: render chunk
         run: |
+          set -eo pipefail
           a=$((${{ matrix.chunk }} * 6)); b=$((a + 6)); S=$(date +%s)
           python scripts/render.py --project proj --size ${{ matrix.size }} --t0 $a --t1 $b --out out.mp4 --workers 4 2>&1 | tail -5
           echo "RENDER_SECONDS=$(( $(date +%s) - S )) size=${{ matrix.size }} chunk=${{ matrix.chunk }} nproc=$(nproc)" | tee -a $GITHUB_STEP_SUMMARY
