@@ -1,0 +1,27 @@
+name: render-test
+on: workflow_dispatch
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        size: [1280x720, 1920x1080]
+        chunk: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.10'}
+      - name: unpack
+        run: unzip -q bundle.zip
+      - name: deps
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          pip install -q skia-python numpy pillow scipy
+      - name: render chunk
+        run: |
+          a=$((${{ matrix.chunk }} * 6)); b=$((a + 6)); S=$(date +%s)
+          python scripts/render.py --project proj --size ${{ matrix.size }} --t0 $a --t1 $b --out out.mp4 --workers 4 2>&1 | tail -5
+          echo "RENDER_SECONDS=$(( $(date +%s) - S )) size=${{ matrix.size }} chunk=${{ matrix.chunk }} nproc=$(nproc)" | tee -a $GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@v4
+        with: {name: "c${{ matrix.chunk }}-${{ matrix.size }}", path: out.mp4}
