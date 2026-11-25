@@ -1,5 +1,7 @@
 name: render-test
 on: workflow_dispatch
+permissions:
+  contents: write
 jobs:
   render:
     runs-on: ubuntu-latest
@@ -24,5 +26,8 @@ jobs:
           a=$((${{ matrix.chunk }} * 6)); b=$((a + 6)); S=$(date +%s)
           python scripts/render.py --project proj --size ${{ matrix.size }} --t0 $a --t1 $b --out out.mp4 --workers 4 2>&1 | tail -5
           echo "RENDER_SECONDS=$(( $(date +%s) - S )) size=${{ matrix.size }} chunk=${{ matrix.chunk }} nproc=$(nproc)" | tee -a $GITHUB_STEP_SUMMARY
-      - uses: actions/upload-artifact@v4
-        with: {name: "c${{ matrix.chunk }}-${{ matrix.size }}", path: out.mp4}
+      - name: publish chunk
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "c${{ matrix.chunk }}-${{ matrix.size }}-${{ github.run_id }}" proj/out.mp4 --title "chunk ${{ matrix.chunk }} ${{ matrix.size }}" --notes "test render"
